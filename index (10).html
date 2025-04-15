@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>بوت تحليل العملات</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet" />
+
+
+  <style>
+  
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      overflow: auto;
+    }
+  
+    .container {
+      max-width: 700px;
+      margin: 50px auto;
+      background: #1c1c1c;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    h1, h2 {
+      text-align: center;
+      color: #00ffe1;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
+    button {
+      background-color: #00ffe1;
+      color: #000;
+      margin-top: 20px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background-color: #00bfa5;
+    }
+    #resultBox, #marketResultBox {
+      margin-top: 30px;
+      padding: 15px;
+      background: #292929;
+      border-left: 5px solid #00ffe1;
+      border-radius: 8px;
+      font-size: 18px;
+    }
+    .login-container {
+      max-width: 400px;
+      margin: 100px auto;
+      position: relative;
+      background: #1c1c1c;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      text-align: center;
+      /* خلفية صورة لصفحة تسجيل الدخول فقط */
+      background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXUJYQaOrLEpJZdeEvhS5jFMBsSvw1l5IQSA&s');
+      background-size: cover;
+      background-position: center;
+    }
+    .error {
+      color: red;
+      margin-top: 15px;
+    }
+    .top-bar {
+      text-align: center;
+      background: #111;
+      padding: 10px;
+      font-size: 14px;
+      border-bottom: 1px solid #333;
+    }
+    /* شريط التردد (Ticker) في صفحة تسجيل الدخول */
+    #tickerContainer {
+      width: 100%;
+      overflow: hidden;
+      background: rgba(0,0,0,0.7);
+      padding: 5px 0;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    #ticker {
+      color: #00ffe1;
+      font-size: 14px;
+    }
+    /* حاوية الرسم البياني */
+    #tradingview_chart {
+      margin-top: 20px;
+    }
+    /* عداد تنازلي وزر نسخ الإشارة */
+    .countdown {
+      margin-top: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .copy-btn {
+      width: auto;
+      padding: 8px 12px;
+      font-size: 14px;
+      border-radius: 5px;
+      background-color: #00ffe1;
+      color: #000;
+      margin: 10px auto;
+      display: block;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  لكي يمكنك استخدام البوت تواصل معي على التليجرام: 
+  <a href="https://t.me/Trader2365" target="_blank">@Trader2365</a>
+</div>
+
+<!-- صفحة تسجيل الدخول -->
+<div id="loginPage" class="login-container">
+  <!-- شريط التردد -->
+  <div id="tickerContainer"><marquee id="ticker"></marquee></div>
+  <h2>🚪 تسجيل الدخول</h2>
+  <input type="password" id="password" placeholder="ادخل كلمة المرور">
+  <button onclick="checkPassword()">دخول</button>
+  <div id="loginError" class="error"></div>
+</div>
+
+<!-- التطبيق الرئيسي -->
+<div id="mainApp" style="display:none;">
+  <div class="container">
+    <h1>📊 بوت تحليل عملات OTC</h1>
+
+    <label>سعر الدعم:</label>
+    <input type="number" id="support">
+
+    <label>توقيت الدعم (س:د):</label>
+    <input type="text" id="supportTime" placeholder="مثال: 13:15">
+
+    <label>سعر المقاومة:</label>
+    <input type="number" id="resistance">
+
+    <label>توقيت المقاومة (س:د):</label>
+    <input type="text" id="resistanceTime" placeholder="مثال: 13:45">
+
+    <label>توقيت السعر الحالي (س:د):</label>
+    <input type="text" id="currentTime" placeholder="مثال: 13:30">
+
+    <label>السعر الحالي:</label>
+    <input type="number" id="currentPrice">
+
+    <label>اختر الفريم:</label>
+    <select id="frame">
+      <option value="15s">15 ثانية</option>
+      <option value="30s">30 ثانية</option>
+      <option value="1m">1 دقيقة</option>
+      <option value="2m">2 دقائق</option>
+      <option value="3m">3 دقائق</option>
+      <option value="5m">5 دقائق</option>
+      <option value="10m">10 دقائق</option>
+      <option value="15m">15 دقيقة</option>
+      <option value="30m">30 دقيقة</option>
+    </select>
+
+    <label>مدة الصفقة:</label>
+    <select id="duration">
+      <option value="15s">15 ثانية</option>
+      <option value="30s">30 ثانية</option>
+      <option value="1m">1 دقيقة</option>
+      <option value="2m">2 دقائق</option>
+      <option value="3m">3 دقائق</option>
+      <option value="4m">4 دقائق</option>
+      <option value="5m">5 دقائق</option>
+      <option value="10m">10 دقائق</option>
+      <option value="15m">15 دقيقة</option>
+    </select>
+
+    <button onclick="analyze()">🔍 تحليل</button>
+
+    <div id="resultBox"></div>
+    <div id="countdownTimerMain" class="countdown"></div>
+    <button id="copySignalBtnMain" class="copy-btn">نسخ الإشارة</button>
+
+    <button onclick="showMarketAnalysis()">🌍 تحليل أزواج عملات السوق العالمي</button>
+  </div>
+</div>
+
+<!-- قسم تحليل أزواج السوق العالمي -->
+<div id="marketAnalysis" style="display:none;">
+  <div class="container">
+    <h1>تحليل أزواج عملات السوق العالمي</h1>
+
+    <label>اختر زوج العملة (OANDA):</label>
+    <select id="pair" onchange="updateChartOnSelect()">
+      <option value="EURUSD">EURUSD</option>
+      <option value="GBPUSD">GBPUSD</option>
+      <option value="USDJPY">USDJPY</option>
+      <option value="AUDUSD">AUDUSD</option>
+      <option value="USDCAD">USDCAD</option>
+      <option value="USDCHF">USDCHF</option>
+      <option value="NZDUSD">NZDUSD</option>
+    </select>
+
+    <label>اختر الفريم:</label>
+    <select id="marketFrame" onchange="updateChartOnSelect()">
+      <option value="1">1 دقيقة</option>
+      <option value="2">2 دقائق</option>
+      <option value="3">3 دقائق</option>
+      <option value="4">4 دقائق</option>
+      <option value="5">5 دقائق</option>
+      <option value="6">6 دقائق</option>
+      <option value="7">7 دقائق</option>
+      <option value="8">8 دقائق</option>
+      <option value="9">9 دقائق</option>
+      <option value="10">10 دقائق</option>
+    </select>
+
+    <label>مدة الصفقة:</label>
+    <select id="marketDuration">
+      <option value="1">1 دقيقة</option>
+      <option value="2">2 دقائق</option>
+      <option value="3">3 دقائق</option>
+      <option value="4">4 دقائق</option>
+      <option value="5">5 دقائق</option>
+      <option value="6">6 دقائق</option>
+      <option value="7">7 دقائق</option>
+      <option value="8">8 دقائق</option>
+      <option value="9">9 دقائق</option>
+      <option value="10">10 دقائق</option>
+    </select>
+
+    <button onclick="generateSignal()">⚡ توليد إشارة</button>
+
+    <!-- هنا يُعرض الرسم البياني -->
+    <div id="tradingview_chart"></div>
+
+    <!-- هنا تُعرض نتيجة الإشارة -->
+    <div id="marketResultBox"></div>
+    <div id="countdownTimerMarket" class="countdown"></div>
+    <button id="copySignalBtnMarket" class="copy-btn">نسخ الإشارة</button>
+  </div>
+</div>
+
+<!-- سكربت TradingView Widget -->
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+  const PASSWORD = "BADIS2007";
+  let countdownIntervalMain;
+  let countdownIntervalMarket;
+
+  // ملء شريط التردد بأسماء وهمية
+  window.addEventListener('DOMContentLoaded', () => {
+    const list = [];
+    for (let i = 1; i <= 100; i++) {
+      list.push(`OTC${i}: 📈 شراء | 📉 بيع`);
+    }
+    document.getElementById('ticker').textContent = list.join(' — ');
+  });
+
+  function checkPassword() {
+    const input = document.getElementById("password").value;
+    if (input === PASSWORD) {
+      document.getElementById("loginPage").style.display = "none";
+      document.getElementById("mainApp").style.display = "block";
+    } else {
+      document.getElementById("loginError").innerHTML = "❌ كلمة المرور خاطئة!";
+    }
+  }
+
+  function analyze() {
+    const current = parseFloat(document.getElementById("currentPrice").value);
+    const support = parseFloat(document.getElementById("support").value);
+    const resistance = parseFloat(document.getElementById("resistance").value);
+    const supportTime = document.getElementById("supportTime").value;
+    const resistanceTime = document.getElementById("resistanceTime").value;
+    const time = document.getElementById("currentTime").value;
+    const frame = document.getElementById("frame").value;
+    const durationVal = document.getElementById("duration").value;
+
+    if (isNaN(current) || isNaN(support) || isNaN(resistance)) {
+      document.getElementById("resultBox").innerHTML = "❌ الرجاء إدخال جميع القيم بشكل صحيح.";
+      return;
+    }
+
+    let signal = '';
+    let accuracy = 80 + Math.floor(Math.random() * 21);
+    let advice = '';
+
+    if (current > resistance) {
+      signal = "📈 إشارة شراء قوية";
+      advice = "✅ السعر اخترق المقاومة، مما قد يعني بداية ترند صاعد.";
+      accuracy += 5;
+    } else if (current < support) {
+      signal = "📉 إشارة بيع قوية";
+      advice = "⚠️ السعر كسر الدعم، قد يعني استمرار الهبوط.";
+      accuracy += 5;
+    } else {
+      signal = Math.random() > 0.5 ? "📈 إشارة شراء ضعيفة" : "📉 إشارة بيع ضعيفة";
+      advice = signal.includes("شراء")
+        ? "📊 السعر داخل النطاق، ولكن توجد مؤشرات على صعود."
+        : "📊 السعر داخل النطاق، ولكن توجد مؤشرات على هبوط.";
+    }
+
+    const result = `
+      <strong>${signal}</strong><br>
+      ${advice}<br><br>
+      🔢 السعر الحالي: ${current}<br>
+      🕒 الوقت: ${time}<br>
+      📈 المقاومة: ${resistance} | ⏰ ${resistanceTime}<br>
+      📉 الدعم: ${support} | ⏰ ${supportTime}<br>
+      ⏱️ الفريم: ${frame} | ⏳ مدة الصفقة: ${durationVal}<br>
+      🎯 الدقة المتوقعة: ${accuracy}%<br>
+      🕰️ توقيت الدخول: ${new Date().toLocaleTimeString()}
+    `;
+
+    document.getElementById("resultBox").innerHTML = result;
+
+    // نسخ الإشارة
+    document.getElementById('copySignalBtnMain').onclick = () => {
+      navigator.clipboard.writeText(document.getElementById('resultBox').innerText)
+        .then(() => alert('تم نسخ الإشارة!'));
+    };
+
+    // عداد تنازلي
+    startCountdown('countdownTimerMain', durationVal, 'main');
+  }
+
+  function showMarketAnalysis() {
+    document.getElementById("mainApp").style.display = "none";
+    document.getElementById("marketAnalysis").style.display = "block";
+    createTradingView();
+  }
+
+  function createTradingView() {
+    const pair = document.getElementById("pair").value;
+    const frame = document.getElementById("marketFrame").value;
+    const container = document.getElementById("tradingview_chart");
+    container.innerHTML = "";
+    new TradingView.widget({
+      width: "100%",
+      height: 400,
+      symbol: "OANDA:" + pair,
+      interval: frame,
+      timezone: "Etc/UTC",
+      theme: "dark",
+      style: "1",
+      locale: "ar",
+      toolbar_bg: "#111",
+      enable_publishing: false,
+      allow_symbol_change: true,
+      container_id: "tradingview_chart"
+    });
+  }
+
+  function updateChartOnSelect() {
+    if (document.getElementById("marketAnalysis").style.display === "block") {
+      createTradingView();
+    }
+  }
+
+  function generateSignal() {
+    const pair = document.getElementById("pair").value;
+    const frame = document.getElementById("marketFrame").value;
+    const durationVal = document.getElementById("marketDuration").value;
+
+    const accuracy = 80 + Math.floor(Math.random() * 21);
+    const signalType = Math.random() > 0.5
+      ? '📈 إشارة شراء قوية'
+      : '📉 إشارة بيع قوية';
+    const advice = signalType.includes('شراء')
+      ? '✅ السعر يشير إلى صعود محتمل.'
+      : '⚠️ السعر يشير إلى هبوط محتمل.';
+
+    const result = `
+      <strong>${signalType}</strong><br>
+      ${advice}<br><br>
+      💱 زوج العملة: ${pair}<br>
+      ⏱️ الفريم: ${frame} دقيقة<br>
+      ⌛ مدة الصفقة: ${durationVal} دقيقة<br>
+      🎯 الدقة المتوقعة: ${accuracy}%<br>
+      🕰️ توقيت الدخول: ${new Date().toLocaleTimeString()}
+    `;
+    document.getElementById("marketResultBox").innerHTML = result;
+
+    document.getElementById('copySignalBtnMarket').onclick = () => {
+      navigator.clipboard.writeText(document.getElementById('marketResultBox').innerText)
+        .then(() => alert('تم نسخ الإشارة!'));
+    };
+
+    // عداد تنازلي
+    startCountdown('countdownTimerMarket', durationVal, 'market');
+    createTradingView();
+  }
+
+  function startCountdown(elementId, durationVal, type) {
+    // تحويل durationVal إلى ثوانٍ
+    let totalSec = 0;
+    if (durationVal.endsWith('s')) {
+      totalSec = parseInt(durationVal);
+    } else {
+      totalSec = parseInt(durationVal) * 60;
+    }
+    const display = document.getElementById(elementId);
+
+    // تنظيف أي عداد سابق
+    if (type === 'main' && countdownIntervalMain) clearInterval(countdownIntervalMain);
+    if (type === 'market' && countdownIntervalMarket) clearInterval(countdownIntervalMarket);
+
+    function updateTimer() {
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      display.textContent = `الوقت المتبقي: ${mins}:${secs.toString().padStart(2, '0')}`;
+      if (totalSec <= 0) {
+        clearInterval(type === 'main' ? countdownIntervalMain : countdownIntervalMarket);
+        display.textContent = 'انتهى الوقت!';
+      }
+      totalSec--;
+    }
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    if (type === 'main') countdownIntervalMain = interval;
+    else countdownIntervalMarket = interval;
+  }
+</script>
+
+</body>
+</html>
